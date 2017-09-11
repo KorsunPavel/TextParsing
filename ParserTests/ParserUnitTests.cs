@@ -3,15 +3,19 @@ using Parser;
 using System.Collections.Generic;
 using FluentAssertions;
 using System.Text;
+using System.Diagnostics;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace ParserTests {
     [TestClass]
     public class ParserUnitTests {
         [TestMethod]
         public void ShouldParseDashes() {
-            string text = $"te\u2011st te\u2010st te-st -test -cat-cat-cat- are--results -- - test-";
-            ParserClass parser = new ParserClass();
-            Dictionary<string, int> wordsAmount = parser.ParseTest(text);
+            string text = $"te\u2011st te\u2010st te-st -test -cat-cat-cat- are\u2014results -- - test-";
+            Parser.TextParser parser = new Parser.TextParser();
+            Dictionary<string, int> wordsAmount = parser.ParseText(text);
             wordsAmount.Should().NotBeNull();
             wordsAmount.Should().NotBeEmpty();
             wordsAmount.Should().HaveCount(5);
@@ -25,8 +29,8 @@ namespace ParserTests {
         [TestMethod]
         public void ShouldParseSpaces() {
             string text = " test test    test    ";
-            ParserClass parser = new ParserClass();
-            Dictionary<string, int> wordsAmount = parser.ParseTest(text);
+            Parser.TextParser parser = new Parser.TextParser();
+            Dictionary<string, int> wordsAmount = parser.ParseText(text);
             wordsAmount.Should().NotBeNull();
             wordsAmount.Should().NotBeEmpty();
             wordsAmount.Should().HaveCount(1);
@@ -37,8 +41,8 @@ namespace ParserTests {
         [TestMethod]
         public void ShouldParsePunctuation() {
             string text = "test, test: test! test? test.";
-            ParserClass parser = new ParserClass();
-            Dictionary<string, int> wordsAmount = parser.ParseTest(text);
+            Parser.TextParser parser = new Parser.TextParser();
+            Dictionary<string, int> wordsAmount = parser.ParseText(text);
             wordsAmount.Should().NotBeNull();
             wordsAmount.Should().NotBeEmpty();
             wordsAmount.Should().HaveCount(1);
@@ -47,13 +51,29 @@ namespace ParserTests {
         [TestMethod]
         public void ShouldParseLessThanThreeChars() {
             string text = "t te tes test tes te t";
-            ParserClass parser = new ParserClass();
-            Dictionary<string, int> wordsAmount = parser.ParseTest(text);
+            Parser.TextParser parser = new Parser.TextParser();
+            Dictionary<string, int> wordsAmount = parser.ParseText(text);
             wordsAmount.Should().NotBeNull();
             wordsAmount.Should().NotBeEmpty();
             wordsAmount.Should().HaveCount(2);
             wordsAmount.Should().Contain("tes", 2);
             wordsAmount.Should().Contain("test", 1);
+        }
+
+        [TestMethod]
+        public  void ShouldParseTextFile() {
+            var words = System.IO.File.ReadAllLines(@"D:\text.txt");
+            StringBuilder sb = new StringBuilder();
+            foreach (var word in words)
+            {
+                sb.Append(word).AppendLine();
+            }
+            StringBuilderParser parser = new StringBuilderParser();
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+            Dictionary<string, int> wordsAmount = parser.ParseWithStringBuilder(sb);
+            stopWatch.Stop();
+            double tsParalell = stopWatch.Elapsed.TotalSeconds;
         }
 
         [TestMethod]
@@ -67,8 +87,8 @@ namespace ParserTests {
             }
             string text = builder.ToString();
 
-            ParserClass parser = new ParserClass();
-            Dictionary<string, int> wordsAmount = parser.ParseTest(text);
+            Parser.TextParser parser = new Parser.TextParser();
+            Dictionary<string, int> wordsAmount = parser.ParseText(text);
             wordsAmount.Should().NotBeNull();
             wordsAmount.Should().NotBeEmpty();
             wordsAmount.Should().HaveCount(3);
@@ -81,8 +101,8 @@ namespace ParserTests {
         public void ShouldIgnoreCase() {
             string text = "cat cAt CAT";
 
-            ParserClass parser = new ParserClass();
-            Dictionary<string, int> wordsAmount = parser.ParseTest(text);
+            Parser.TextParser parser = new Parser.TextParser();
+            Dictionary<string, int> wordsAmount = parser.ParseText(text);
             wordsAmount.Should().NotBeNull();
             wordsAmount.Should().NotBeEmpty();
             wordsAmount.Should().HaveCount(1);
