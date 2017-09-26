@@ -5,8 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Parser {
-    class SplitParser {
-        public Dictionary<string, int> ParseTextSplit(string text) {
+    public class SplitParser {
+        public Dictionary<string, int> ParseText(string text) {
             var words = text
                 .Split(new char[] { '\n', '\r', '\u2013', '\u2014', ' ', ':', ',', '!', '?', '.' }, StringSplitOptions.RemoveEmptyEntries)
                 .Where(s => s.Length > 2)
