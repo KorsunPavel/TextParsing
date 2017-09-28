@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Parser {
     public class ConcurrentQueueService {
         static ConcurrentQueue<string> _queue;
-        public static Dictionary<string, int> dic = new Dictionary<string, int>();
+        public static ConcurrentDictionary<string, int> dic = new ConcurrentDictionary<string, int>();
 
         public void ParseTextCh(char[] text) {
             StringBuilder sb = new StringBuilder();
@@ -65,12 +65,33 @@ namespace Parser {
         }
 
         public static void Dequeue() {
-           // while (!_queue.IsEmpty)
+            while (!_queue.IsEmpty)
             {
                 try
                 {
-                    string word;
-                    while (_queue.TryDequeue(out word)) { AddToDictionary(word); }
+                    string line;
+                    for (int i = 0; i < 2; i++)
+                    {
+                        Task.Run(() =>
+                        {
+                            var isFull = _queue.TryDequeue(out line);
+                            {
+                                if (isFull)
+                                {
+                                    var words = line.Split(new char[] { '\n', '\r', '\u2013', '\u2014', ' ', ':', ',', '!', '?', '.' }, StringSplitOptions.RemoveEmptyEntries)
+                                   .Where(s => s.Length > 2)
+                                   .Select(s => s.Replace('\u2011', '-'))
+                                   .Select(s => s.Replace('\u2010', '-'))
+                                   .Select(s => s.Trim('-'));
+
+                                    foreach (String word in words)
+                                    {
+                                        AddToDictionary(word);
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
                 catch (NullReferenceException ex)
                 {
@@ -85,14 +106,15 @@ namespace Parser {
         }
 
         private static void AddToDictionary(string word) {
-            if (dic.ContainsKey(word))
-            {
-                dic[word]++;
-            }
-            else
-            {
-                dic.Add(word, 1);
-            }
+            dic.AddOrUpdate(word, 1, (key, value) => value + 1);
+            //if (dic.ContainsKey(word))
+            //{
+            //    dic[word]++;
+            //}
+            //else
+            //{
+            //    dic.Add(word, 1);
+            //}
         }
     }
 }

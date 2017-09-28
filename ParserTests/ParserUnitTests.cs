@@ -70,6 +70,8 @@ namespace ParserTests {
             // Our thread-safe collection used for the handover.
             var lines = new BlockingCollection<string>();
 
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
             // Build the pipeline.
             var stage1 = Task.Run(() =>
             {
@@ -121,6 +123,8 @@ namespace ParserTests {
             // This makes this method prone to deadlocking.
             // Consider using 'await Task.WhenAll' instead.
             Task.WaitAll(stage1, stage2);
+            stopWatch.Stop();
+            double tsParalell = stopWatch.Elapsed.TotalSeconds;
 
         }
         [TestMethod]
@@ -130,16 +134,17 @@ namespace ParserTests {
 
 
             //
+            //TextParser parser = new TextParser();
+            SplitParser parser = new SplitParser();
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
             var words = File.ReadAllLines(@"D:\text.txt");
             StringBuilder sb = new StringBuilder();
             foreach (var word in words)
             {
                 sb.Append(word).AppendLine();
             }
-            TextParser parser = new TextParser();
-            Stopwatch stopWatch = new Stopwatch();
-            stopWatch.Start();
-            Dictionary<string, int> wordsAmount = parser.ParseTextCh(sb.ToString().ToCharArray());
+            Dictionary<string, int> wordsAmount = parser.ParseText(sb.ToString());
             stopWatch.Stop();
             double tsParalell = stopWatch.Elapsed.TotalSeconds;
         }
@@ -189,31 +194,33 @@ namespace ParserTests {
             ConcurrentQueueService cs = new ConcurrentQueueService();
             var tokenSource2 = new CancellationTokenSource();
             CancellationToken ct = tokenSource2.Token;
-            int theshHoldInBytes = ConvertMegabyteToBytes(1);
-            string path = @"D:\text.txt";
-            long sizeOfFile = new FileInfo(path).Length;
-            if (sizeOfFile > theshHoldInBytes)
-            {
-
-            }
-            List<Task> list = new List<Task>();
-            SplitParser parser = new SplitParser();
+           
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
-            //Task.Run(() => cs.ParseTextCh(new char[] { 't','e','s','t',' ','m','y','o'}));
-            using (StreamReader reader = new StreamReader(path))
+            var stage1 = Task.Run(() =>
             {
-                while (reader.Peek() >= 0)
+                try
                 {
-                    char[] arr = new char[theshHoldInBytes];
-                    reader.Read(arr, 0, theshHoldInBytes);
-                    list.Add(Task.Run(() => cs.ParseTextCh(arr)));
+                    using (var reader = new StreamReader(@"D:\text.txt"))
+                    {
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            // Hand over to stage 2 and continue reading.
+                            ConcurrentQueueService.Enqueue(line);
+                        }
+                    }
                 }
-            }
+                finally
+                {
+                   // lines.CompleteAdding();
+                }
+            });
             var t = Task.Run(() => ConcurrentQueueService.Dequeue(), tokenSource2.Token);
-            Task.WaitAll(list.ToArray());
+            stage1.Wait();//Task.WaitAll(list.ToArray());
             t.Wait();
-            //tokenSource2.Cancel();
+            stopWatch.Stop();
+            double tsParalell = stopWatch.Elapsed.TotalSeconds;
             var ss = ConcurrentQueueService.dic;
 
         }
